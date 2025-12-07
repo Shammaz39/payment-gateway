@@ -24,5 +24,7 @@ public class Merchant {
 
     private String status;
 
+    private String apiKey;
+
     private LocalDateTime createdAt;;
 }

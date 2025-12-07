@@ -30,6 +30,19 @@ services:
     networks:
       - payment-net
 
+
+  adminer:
+      image: adminer
+      container_name: payment_adminer
+      restart: always
+      ports:
+        - "8089:8080"
+      depends_on:
+        - postgres
+      networks:
+        - payment-net
+
+
 volumes:
   pgdata:
 
