@@ -1,10 +1,10 @@
 package com.paymentgateway.merchantservice.service;
 
 import com.paymentgateway.merchantservice.dto.MerchantRequest;
-import com.paymentgateway.merchantservice.dto.MerchantResponse;
 import com.paymentgateway.merchantservice.entity.ApiKey;
 import com.paymentgateway.merchantservice.entity.Merchant;
 import com.paymentgateway.merchantservice.exception.MerchantAlreadyExistsException;
+import com.paymentgateway.merchantservice.exception.MerchantNotFoundException;
 import com.paymentgateway.merchantservice.repository.ApiKeyRepository;
 import com.paymentgateway.merchantservice.repository.MerchantRepository;
 import com.paymentgateway.merchantservice.util.ApiKeyUtil;
@@ -64,6 +64,38 @@ public class MerchantService {
 
         return saved;
     }
+
+
+    public String regenerateApiKey(String merchantId) {
+
+        // 1. Check merchant exists
+        Merchant merchant = merchantRepository.findById(merchantId)
+                .orElseThrow(() -> new MerchantNotFoundException("Merchant not found"));
+
+        // 2. Deactivate old key (if any)
+        apiKeyRepository.findByMerchantIdAndActiveTrue(merchant.getId())
+                .ifPresent(oldKey -> {
+                    oldKey.setActive(false);
+                    apiKeyRepository.save(oldKey);
+                });
+
+        // 3. Generate new raw key
+        String newRawKey = ApiKeyUtil.generateApiKey();
+        String newHashed = BCrypt.hashpw(newRawKey, BCrypt.gensalt());
+
+        // 4. Save new key as active
+        ApiKey newKey = new ApiKey();
+        newKey.setMerchantId(merchant.getId());
+        newKey.setHashedKey(newHashed);
+        newKey.setActive(true);
+        newKey.setCreatedAt(LocalDateTime.now());
+
+        apiKeyRepository.save(newKey);
+
+        // 5. Return raw key ONCE
+        return newRawKey;
+    }
+
 
 
 }

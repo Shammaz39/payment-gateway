@@ -2,9 +2,17 @@ package com.paymentgateway.merchantservice.controller;
 
 import com.paymentgateway.merchantservice.dto.MerchantRequest;
 import com.paymentgateway.merchantservice.dto.MerchantResponse;
+import com.paymentgateway.merchantservice.dto.RegenerateApiKeyResponse;
 import com.paymentgateway.merchantservice.entity.Merchant;
 import com.paymentgateway.merchantservice.service.MerchantService;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import org.springframework.context.annotation.Description;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,4 +43,25 @@ public class MerchantController {
     public List<Merchant> register() {
         return merchantService.getAllMerchants();
     }
+
+    @PostMapping("/{merchantId}/regenerate-api-key")
+    @Operation(
+            summary = "Regenerate merchant API key",
+            description = "Generates a new API key for the given merchant and returns it in the response."
+    )
+    public RegenerateApiKeyResponse regenerateApiKey(@Parameter(
+                                                        description = "Unique merchant ID",
+                                                        example = "mrc_12345"
+                                                        )
+                                                       @PathVariable("merchantId") String merchantId
+    ) {
+        String newKey = merchantService.regenerateApiKey(merchantId);
+
+        RegenerateApiKeyResponse response = new RegenerateApiKeyResponse();
+        response.setMessage("API key regenerated successfully");
+        response.setNewApiKey(newKey);
+
+        return response;
+    }
+
 }
