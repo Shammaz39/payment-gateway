@@ -2,6 +2,7 @@ package com.paymentgateway.merchantservice.controller;
 
 import com.paymentgateway.merchantservice.dto.MerchantRequest;
 import com.paymentgateway.merchantservice.dto.MerchantResponse;
+import com.paymentgateway.merchantservice.dto.MerchantValidateRequest;
 import com.paymentgateway.merchantservice.dto.RegenerateApiKeyResponse;
 import com.paymentgateway.merchantservice.entity.Merchant;
 import com.paymentgateway.merchantservice.service.MerchantService;
@@ -63,5 +64,13 @@ public class MerchantController {
 
         return response;
     }
+
+
+
+    @PostMapping("/validate")
+    public boolean validateMerchant(@RequestBody MerchantValidateRequest req) {
+        return merchantService.validateMerchant(req.getEmail(), req.getApiKey());
+    }
+
 
 }
