@@ -41,6 +41,13 @@ services:
         - postgres
       networks:
         - payment-net
+  redis:
+    image: redis:7
+    container_name: payment-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - payment-net
 
 
 volumes:

@@ -23,10 +23,11 @@ public class PaymentController {
     @PostMapping
     public PaymentResponse createPayment(
             Authentication authentication,
+            @RequestHeader("Idempotency-Key") String idempotencyKey,
             @RequestBody PaymentRequest request
     ) {
         String merchantId = authentication.getName(); //
 
-        return paymentService.createPayment(merchantId, request);
+        return paymentService.createPayment(merchantId, request, idempotencyKey);
     }
 }

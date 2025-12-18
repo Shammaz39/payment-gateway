@@ -5,5 +5,5 @@ import com.paymentgateway.paymentservice.dto.PaymentResponse;
 
 
 public interface PaymentService {
-    PaymentResponse createPayment(String merchantId, PaymentRequest request);
+    PaymentResponse createPayment(String merchantId, PaymentRequest request, String idempotencyKey);
 }
