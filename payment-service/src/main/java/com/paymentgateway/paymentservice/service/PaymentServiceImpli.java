@@ -1,11 +1,13 @@
 package com.paymentgateway.paymentservice.service;
 
+import com.paymentgateway.commonlib.event.PaymentInitiatedEvent;
 import com.paymentgateway.paymentservice.dto.PaymentRequest;
 import com.paymentgateway.paymentservice.dto.PaymentResponse;
 import com.paymentgateway.paymentservice.entity.PaymentLog;
 import com.paymentgateway.paymentservice.entity.Transaction;
 import com.paymentgateway.paymentservice.enums.TransactionStatus;
 import com.paymentgateway.paymentservice.exception.InValidException;
+import com.paymentgateway.paymentservice.kafka.PaymentEventProducer;
 import com.paymentgateway.paymentservice.repository.PaymentLogRepository;
 import com.paymentgateway.paymentservice.repository.TransactionRepository;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -19,11 +21,13 @@ public class PaymentServiceImpli implements PaymentService {
     private final TransactionRepository transactionRepository;
     private final PaymentLogRepository logRepository;
     private final RedisTemplate<String, Object> redisTemplate;
+    private final PaymentEventProducer paymentEventProducer;
 
-    public PaymentServiceImpli(TransactionRepository transactionRepository, PaymentLogRepository logRepository, RedisTemplate<String, Object> redisTemplate) {
+    public PaymentServiceImpli(TransactionRepository transactionRepository, PaymentLogRepository logRepository, PaymentEventProducer paymentEventProducer, RedisTemplate<String, Object> redisTemplate) {
         this.transactionRepository = transactionRepository;
         this.logRepository = logRepository;
         this.redisTemplate = redisTemplate;
+        this.paymentEventProducer = paymentEventProducer;
     }
     @Override
     public PaymentResponse createPayment(
@@ -79,6 +83,16 @@ public class PaymentServiceImpli implements PaymentService {
                     .amount(transaction.getAmount())
                     .currency(transaction.getCurrency())
                     .build();
+
+
+            PaymentInitiatedEvent event = PaymentInitiatedEvent.builder()
+                    .transactionId(transaction.getId())
+                    .merchantId(merchantId)
+                    .amount(transaction.getAmount())
+                    .currency(transaction.getCurrency())
+                    .build();
+
+            paymentEventProducer.publishPaymentInitiated(event);
 
             // ---------- 6️⃣ Cache final response (24h) ----------
             redisTemplate.opsForValue()

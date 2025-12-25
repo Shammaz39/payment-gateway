@@ -21,5 +21,12 @@
     </properties>
 
     <!-- if later you add shared DTOs/entities and need Lombok/Jackson, we add deps here -->
-
+<dependencies>
+    <!-- Lombok -->
+    <dependency>
+        <groupId>org.projectlombok</groupId>
+        <artifactId>lombok</artifactId>
+        <optional>true</optional>
+    </dependency>
+</dependencies>
 </project>
