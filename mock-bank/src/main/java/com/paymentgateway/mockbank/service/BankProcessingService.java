@@ -16,24 +16,56 @@ public class BankProcessingService {
         BankPaymentResponse response = new BankPaymentResponse();
         response.setTransactionId(request.getTransactionId());
 
-        // SIMPLE & REALISTIC LOGIC
-        if (request.getAmount().intValue() < 5000) {
-            // immediate success
+        int amount = request.getAmount().intValue();
+
+        // 1️⃣ Amount < 5000 → immediate SUCCESS
+        if (amount < 5000) {
+
             response.setStatus("SUCCESS");
-        } else {
-            // async processing
+
+            new Thread(() -> {
+                sendCallback(request, "SUCCESS");
+            }).start();
+
+        }
+        // 2️⃣ Amount between 5000 and 10000 → SUCCESS after 3 sec
+        else if (amount <= 10000) {
+
             response.setStatus("PENDING");
 
             new Thread(() -> {
                 try {
-                    Thread.sleep(3000); // simulate bank delay
+                    Thread.sleep(3000);
                     sendCallback(request, "SUCCESS");
                 } catch (Exception e) {
                     sendCallback(request, "FAILED");
                 }
             }).start();
+
         }
-        System.out.println("Mock Bank response: "+ response.toString());
+        // 3️⃣ Amount > 10000 → RANDOM SUCCESS / FAILED after 3 sec
+        else {
+
+            response.setStatus("PENDING");
+
+            new Thread(() -> {
+                try {
+                    Thread.sleep(3000);
+
+                    boolean success = Math.random() < 0.5;
+                    sendCallback(request, success ? "SUCCESS" : "FAILED");
+
+                } catch (Exception e) {
+                    sendCallback(request, "FAILED");
+                }
+            }).start();
+        }
+
+        System.out.println(
+                "Mock Bank initial response -> txId="
+                        + response.getTransactionId()
+                        + ", status=" + response.getStatus()
+        );
 
         return response;
     }

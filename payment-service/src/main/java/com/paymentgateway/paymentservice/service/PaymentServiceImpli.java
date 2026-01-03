@@ -14,21 +14,33 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
-
+import java.util.UUID;
 @Service
 public class PaymentServiceImpli implements PaymentService {
+
     private final TransactionRepository transactionRepository;
     private final PaymentLogRepository logRepository;
     private final RedisTemplate<String, Object> redisTemplate;
     private final PaymentEventProducer paymentEventProducer;
 
-    public PaymentServiceImpli(TransactionRepository transactionRepository, PaymentLogRepository logRepository, PaymentEventProducer paymentEventProducer, RedisTemplate<String, Object> redisTemplate) {
+    public PaymentServiceImpli(
+            TransactionRepository transactionRepository,
+            PaymentLogRepository logRepository,
+            PaymentEventProducer paymentEventProducer,
+            RedisTemplate<String, Object> redisTemplate
+    ) {
         this.transactionRepository = transactionRepository;
         this.logRepository = logRepository;
         this.redisTemplate = redisTemplate;
         this.paymentEventProducer = paymentEventProducer;
     }
+
+    // =========================================================
+    // CREATE PAYMENT (IDEMPOTENT)
+    // =========================================================
     @Override
     public PaymentResponse createPayment(
             String merchantId,
@@ -36,29 +48,34 @@ public class PaymentServiceImpli implements PaymentService {
             String idempotencyKey
     ) {
 
-        // ---------- 1️⃣ Basic validation ----------
         validateRequest(merchantId, request, idempotencyKey);
 
         String lockKey = "payment:lock:" + merchantId + ":" + idempotencyKey;
         String responseKey = "payment:response:" + merchantId + ":" + idempotencyKey;
 
-// 1️⃣ Try acquiring lock
+        // 1️⃣ Acquire lock
         Boolean lockAcquired = redisTemplate.opsForValue()
                 .setIfAbsent(lockKey, "LOCKED", Duration.ofMinutes(5));
 
+        // 2️⃣ Duplicate request
         if (Boolean.FALSE.equals(lockAcquired)) {
-            PaymentResponse cached =
-                    (PaymentResponse) redisTemplate.opsForValue().get(responseKey);
 
-            if (cached != null) {
-                return cached;
+            String existingTxnId =
+                    (String) redisTemplate.opsForValue().get(responseKey);
+
+            if (existingTxnId != null) {
+                Transaction tx = transactionRepository
+                        .findById(UUID.fromString(existingTxnId))
+                        .orElseThrow();
+
+                return buildResponse(tx);
             }
 
             throw new InValidException("Duplicate payment request");
         }
 
         try {
-            // ---------- 3️⃣ Persist transaction ----------
+            // 3️⃣ Create transaction
             Transaction transaction = Transaction.builder()
                     .merchantId(merchantId)
                     .amount(request.getAmount())
@@ -68,23 +85,15 @@ public class PaymentServiceImpli implements PaymentService {
 
             transaction = transactionRepository.save(transaction);
 
-            // ---------- 4️⃣ Persist payment log ----------
-            PaymentLog log = PaymentLog.builder()
-                    .transactionId(transaction.getId())
-                    .message("Payment created with PENDING status")
-                    .build();
+            // 4️⃣ Log
+            logRepository.save(
+                    PaymentLog.builder()
+                            .transactionId(transaction.getId())
+                            .message("Payment created with PENDING status")
+                            .build()
+            );
 
-            logRepository.save(log);
-
-            // ---------- 5️⃣ Build response ----------
-            PaymentResponse response = PaymentResponse.builder()
-                    .transactionId(transaction.getId().toString())
-                    .status(transaction.getStatus().name())
-                    .amount(transaction.getAmount())
-                    .currency(transaction.getCurrency())
-                    .build();
-
-
+            // 5️⃣ Publish Kafka event
             PaymentInitiatedEvent event = PaymentInitiatedEvent.builder()
                     .transactionId(transaction.getId())
                     .merchantId(merchantId)
@@ -94,17 +103,69 @@ public class PaymentServiceImpli implements PaymentService {
 
             paymentEventProducer.publishPaymentInitiated(event);
 
-            // ---------- 6️⃣ Cache final response (24h) ----------
+            // 6️⃣ Cache ONLY transactionId (idempotency)
             redisTemplate.opsForValue()
-                    .set(responseKey, response, Duration.ofHours(24));
+                    .set(
+                            responseKey,
+                            transaction.getId().toString(),
+                            Duration.ofHours(24)
+                    );
 
-            return response;
+            return buildResponse(transaction);
 
         } catch (Exception ex) {
-            // Important: remove lock if something failed
             redisTemplate.delete(lockKey);
             throw ex;
+        } finally {
+            // 7️⃣ Always release lock
+            redisTemplate.delete(lockKey);
         }
+    }
+
+    // =========================================================
+    // GET PAYMENTS (LATEST FIRST, FILTERABLE)
+    // =========================================================
+    @Override
+    public List<PaymentResponse> getPayments(
+            String merchantId,
+            TransactionStatus status,
+            Double minAmount,
+            Double maxAmount,
+            LocalDate fromDate,
+            LocalDate toDate
+    ) {
+
+        List<Transaction> transactions;
+        LocalDateTime fromDateTime =
+                (fromDate != null) ? fromDate.atStartOfDay() : null;
+
+        LocalDateTime toDateTime =
+                (toDate != null) ? toDate.atTime(23, 59, 59) : null;
+
+        if (fromDate != null && toDate != null) {
+            transactions = transactionRepository.filterWithDates(
+                    merchantId, fromDateTime, toDateTime );
+        } else {
+            transactions = transactionRepository.filterWithoutDates(
+                    merchantId, status, minAmount, maxAmount );
+        }
+
+        return transactions.stream()
+                .map(this::buildResponse)
+                .toList();
+    }
+
+    // =========================================================
+    // HELPERS
+    // =========================================================
+    private PaymentResponse buildResponse(Transaction tx) {
+        return PaymentResponse.builder()
+                .transactionId(tx.getId().toString())
+                .amount(tx.getAmount())
+                .currency(tx.getCurrency())
+                .status(tx.getStatus().name())
+                .createdAt(tx.getCreatedAt())
+                .build();
     }
 
     private void validateRequest(
