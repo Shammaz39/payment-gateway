@@ -75,7 +75,7 @@ public class BankCallbackController {
 
         // 📢 PUBLISH FINAL EVENT
         PaymentProcessedEvent event =
-                new PaymentProcessedEvent(tx.getId(), tx.getStatus().name());
+                new PaymentProcessedEvent(tx.getId(), tx.getStatus().name(), tx.getMerchantId());
 
         paymentProcessedProducer.publish(event);
 

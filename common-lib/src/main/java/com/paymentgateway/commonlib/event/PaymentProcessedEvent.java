@@ -5,33 +5,32 @@ import java.util.UUID;
 
 public class PaymentProcessedEvent {
 
-    private Long transactionId;
+    private UUID transactionId;
+    private String merchantId;
     private String status; // SUCCESS / FAILED
 
     public PaymentProcessedEvent() {}
 
-    public PaymentProcessedEvent(Long transactionId, String status) {
+    public PaymentProcessedEvent(
+            UUID transactionId,
+            String merchantId,
+            String status
+    ) {
         this.transactionId = transactionId;
+        this.merchantId = merchantId;
         this.status = status;
     }
 
-    public PaymentProcessedEvent(UUID id, String name) {
-    }
-
-    public Long getTransactionId() {
+    public UUID getTransactionId() {
         return transactionId;
     }
 
-    public void setTransactionId(Long transactionId) {
-        this.transactionId = transactionId;
+    public String getMerchantId() {
+        return merchantId;
     }
 
     public String getStatus() {
         return status;
-    }
-
-    public void setStatus(String status) {
-        this.status = status;
     }
 }
 
