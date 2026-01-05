@@ -30,14 +30,6 @@ public class NotificationService {
                         + " for TX " + event.getTransactionId()
         );
 
-//        // 1️⃣ Log final payment status
-//        paymentLogRepository.save(
-//                PaymentLog.builder()
-//                        .transactionId(event.getTransactionId())
-//                        .message("Payment " + event.getStatus())
-//                        .build()
-//        );
-
         // 2️⃣ Fetch merchant webhook URL
         String webhookUrl =
                 merchantClient.fetchWebhookUrl(event.getMerchantId());

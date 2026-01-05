@@ -17,5 +17,6 @@ public class PaymentProcessedEvent {
     private UUID transactionId;
     private String merchantId;
     private String status; // SUCCESS / FAILED
+    private String message; // SUCCESS / FAILED
 }
 

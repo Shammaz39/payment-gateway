@@ -24,6 +24,7 @@ public class PaymentProcessedConsumer {
         System.out.println("📣 Notification received");
         System.out.println("TX: " + event.getTransactionId());
         System.out.println("STATUS: " + event.getStatus());
+        System.out.println("Message: " + event.getMessage());
 
         try {
             notificationService.handle(event);

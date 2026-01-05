@@ -88,7 +88,7 @@ public class PaymentServiceImpli implements PaymentService {
             logRepository.save(
                     PaymentLog.builder()
                             .transactionId(transaction.getId())
-                            .message("Payment created with PENDING status")
+                            .message("Payment created with PENDING status of amount " + transaction.getCurrency() + " " + transaction.getAmount())
                             .build()
             );
 

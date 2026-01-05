@@ -70,14 +70,15 @@ public class BankCallbackController {
         paymentLogRepository.save(
                 PaymentLog.builder()
                         .transactionId(tx.getId())
-                        .message("Bank callback received: " + callback.getStatus())
+                        .message("Bank callback received: " + callback.getStatus() + " of "+ tx.getCurrency() + " "+ tx.getAmount() )
                         .createdAt(LocalDateTime.now())
                         .build()
         );
 
+        String message = tx.getCurrency()+" "+tx.getAmount();
         // 📢 PUBLISH FINAL EVENT
         PaymentProcessedEvent event =
-                new PaymentProcessedEvent(tx.getId(),tx.getMerchantId(), tx.getStatus().name());
+                new PaymentProcessedEvent(tx.getId(),tx.getMerchantId(), tx.getStatus().name(), message);
 
         paymentProcessedProducer.publish(event);
 
