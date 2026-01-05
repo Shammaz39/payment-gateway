@@ -25,6 +25,11 @@ public class PaymentProcessedConsumer {
         System.out.println("TX: " + event.getTransactionId());
         System.out.println("STATUS: " + event.getStatus());
 
-        notificationService.handle(event);
+        try {
+            notificationService.handle(event);
+        } catch (Exception e) {
+            System.out.println("❌ Notification failed for TX" + event.getTransactionId()+
+                    "/n"+ e);
+        }
     }
 }

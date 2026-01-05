@@ -39,8 +39,8 @@ public class PaymentServiceImpli implements PaymentService {
     }
 
     // =========================================================
-    // CREATE PAYMENT (IDEMPOTENT)
-    // =========================================================
+// CREATE PAYMENT (IDEMPOTENT – CORRECT)
+// =========================================================
     @Override
     public PaymentResponse createPayment(
             String merchantId,
@@ -53,25 +53,24 @@ public class PaymentServiceImpli implements PaymentService {
         String lockKey = "payment:lock:" + merchantId + ":" + idempotencyKey;
         String responseKey = "payment:response:" + merchantId + ":" + idempotencyKey;
 
-        // 1️⃣ Acquire lock
+        // 1️⃣ FIRST: Check idempotency response (works even for sequential calls)
+        String existingTxnId =
+                (String) redisTemplate.opsForValue().get(responseKey);
+
+        if (existingTxnId != null) {
+            Transaction tx = transactionRepository
+                    .findById(UUID.fromString(existingTxnId))
+                    .orElseThrow();
+
+            return buildResponse(tx);
+        }
+
+        // 2️⃣ Acquire lock (protect concurrent requests)
         Boolean lockAcquired = redisTemplate.opsForValue()
                 .setIfAbsent(lockKey, "LOCKED", Duration.ofMinutes(5));
 
-        // 2️⃣ Duplicate request
-        if (Boolean.FALSE.equals(lockAcquired)) {
-
-            String existingTxnId =
-                    (String) redisTemplate.opsForValue().get(responseKey);
-
-            if (existingTxnId != null) {
-                Transaction tx = transactionRepository
-                        .findById(UUID.fromString(existingTxnId))
-                        .orElseThrow();
-
-                return buildResponse(tx);
-            }
-
-            throw new InValidException("Duplicate payment request");
+        if (!Boolean.TRUE.equals(lockAcquired)) {
+            throw new InValidException("Duplicate payment request in progress");
         }
 
         try {
@@ -93,7 +92,14 @@ public class PaymentServiceImpli implements PaymentService {
                             .build()
             );
 
-            // 5️⃣ Publish Kafka event
+            // 5️⃣ Cache transactionId for idempotency (SOURCE OF TRUTH)
+            redisTemplate.opsForValue().set(
+                    responseKey,
+                    transaction.getId().toString(),
+                    Duration.ofHours(24)
+            );
+
+            // 6️⃣ Publish Kafka event
             PaymentInitiatedEvent event = PaymentInitiatedEvent.builder()
                     .transactionId(transaction.getId())
                     .merchantId(merchantId)
@@ -103,19 +109,8 @@ public class PaymentServiceImpli implements PaymentService {
 
             paymentEventProducer.publishPaymentInitiated(event);
 
-            // 6️⃣ Cache ONLY transactionId (idempotency)
-            redisTemplate.opsForValue()
-                    .set(
-                            responseKey,
-                            transaction.getId().toString(),
-                            Duration.ofHours(24)
-                    );
-
             return buildResponse(transaction);
 
-        } catch (Exception ex) {
-            redisTemplate.delete(lockKey);
-            throw ex;
         } finally {
             // 7️⃣ Always release lock
             redisTemplate.delete(lockKey);

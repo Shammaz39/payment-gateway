@@ -3,8 +3,8 @@ package com.paymentgateway.notificationservice.service;
 
 import com.paymentgateway.commonlib.event.PaymentProcessedEvent;
 import com.paymentgateway.notificationservice.client.MerchantClient;
-import com.paymentgateway.notificationservice.entity.PaymentLog;
-import com.paymentgateway.notificationservice.repository.PaymentLogRepository;
+//import com.paymentgateway.notificationservice.entity.PaymentLog;
+//import com.paymentgateway.notificationservice.repository.PaymentLogRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -13,11 +13,13 @@ public class NotificationService {
 
     private final MerchantClient merchantClient;
     private final RestTemplate restTemplate = new RestTemplate();
-    private final PaymentLogRepository paymentLogRepository;
+//    private final PaymentLogRepository paymentLogRepository;
 
-    public NotificationService(MerchantClient merchantClient, PaymentLogRepository paymentLogRepository) {
+    public NotificationService(MerchantClient merchantClient
+//            , PaymentLogRepository paymentLogRepository
+    ) {
         this.merchantClient = merchantClient;
-        this.paymentLogRepository = paymentLogRepository;
+//        this.paymentLogRepository = paymentLogRepository;
     }
 
     public void handle(PaymentProcessedEvent event) {
@@ -28,13 +30,13 @@ public class NotificationService {
                         + " for TX " + event.getTransactionId()
         );
 
-        // 1️⃣ Log final payment status
-        paymentLogRepository.save(
-                PaymentLog.builder()
-                        .transactionId(event.getTransactionId())
-                        .message("Payment " + event.getStatus())
-                        .build()
-        );
+//        // 1️⃣ Log final payment status
+//        paymentLogRepository.save(
+//                PaymentLog.builder()
+//                        .transactionId(event.getTransactionId())
+//                        .message("Payment " + event.getStatus())
+//                        .build()
+//        );
 
         // 2️⃣ Fetch merchant webhook URL
         String webhookUrl =

@@ -7,8 +7,6 @@ import com.paymentgateway.paymentprocessor.entity.Transaction;
 import com.paymentgateway.paymentprocessor.entity.TransactionStatus;
 import com.paymentgateway.paymentprocessor.kafka.PaymentProcessedProducer;
 import com.paymentgateway.paymentprocessor.repository.TransactionRepository;
-import com.paymentgateway.paymentservice.entity.PaymentLog;
-import com.paymentgateway.paymentservice.repository.PaymentLogRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -24,16 +22,13 @@ public class BankCallbackController {
     private final TransactionRepository transactionRepository;
     private final PaymentProcessedProducer paymentProcessedProducer;
 
-//    private final PaymentLogRepository logRepository;
 
     public BankCallbackController(
             TransactionRepository transactionRepository,
             PaymentProcessedProducer paymentProcessedProducer
-//            PaymentLogRepository logRepository
     ) {
         this.transactionRepository = transactionRepository;
         this.paymentProcessedProducer = paymentProcessedProducer;
-//        this.logRepository = logRepository;
     }
 
     @PostMapping("/callback")
@@ -65,17 +60,9 @@ public class BankCallbackController {
 
         transactionRepository.save(tx);
 
-//        // 4️⃣ Log
-//        logRepository.save(
-//                PaymentLog.builder()
-//                        .transactionId(tx.getId())
-//                        .message("Payment created with" + tx.getStatus() + " status")
-//                        .build()
-//        );
-
         // 📢 PUBLISH FINAL EVENT
         PaymentProcessedEvent event =
-                new PaymentProcessedEvent(tx.getId(), tx.getStatus().name(), tx.getMerchantId());
+                new PaymentProcessedEvent(tx.getId(),tx.getMerchantId(), tx.getStatus().name());
 
         paymentProcessedProducer.publish(event);
 

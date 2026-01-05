@@ -9,12 +9,12 @@ public class MerchantClient {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
-    public String fetchWebhookUrl(String merchantId) {
+    public String fetchWebhookUrl(String email) {
 
         return restTemplate.getForObject(
-                "http://merchant-service:8081/internal/merchants/{id}/webhook",
+                "http://localhost:8081/api/v1/merchants/webhooks?email={email}",
                 String.class,
-                merchantId
+                email
         );
     }
 }

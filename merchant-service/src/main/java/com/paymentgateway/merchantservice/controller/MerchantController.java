@@ -72,5 +72,10 @@ public class MerchantController {
         return merchantService.validateMerchant(req.getEmail(), req.getApiKey());
     }
 
+    @GetMapping("/webhooks")
+    public String validateMerchant(@RequestParam String email) {
+        return merchantService.getWebHooks(email);
+    }
+
 
 }

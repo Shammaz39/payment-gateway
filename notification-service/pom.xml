@@ -99,6 +99,14 @@
             <artifactId>spring-data-jpa</artifactId>
         </dependency>
 
+        <!-- PostgreSQL driver needs explicit version -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.7.8</version>
+            <scope>runtime</scope>
+        </dependency>
+
     </dependencies>
 
     <!-- Build -->

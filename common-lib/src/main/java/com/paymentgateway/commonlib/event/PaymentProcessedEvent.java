@@ -1,36 +1,21 @@
 package com.paymentgateway.commonlib.event;
 
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
 import java.util.UUID;
 
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class PaymentProcessedEvent {
 
     private UUID transactionId;
     private String merchantId;
     private String status; // SUCCESS / FAILED
-
-    public PaymentProcessedEvent() {}
-
-    public PaymentProcessedEvent(
-            UUID transactionId,
-            String merchantId,
-            String status
-    ) {
-        this.transactionId = transactionId;
-        this.merchantId = merchantId;
-        this.status = status;
-    }
-
-    public UUID getTransactionId() {
-        return transactionId;
-    }
-
-    public String getMerchantId() {
-        return merchantId;
-    }
-
-    public String getStatus() {
-        return status;
-    }
 }
 

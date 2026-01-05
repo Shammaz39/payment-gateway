@@ -100,7 +100,13 @@ public class MerchantService {
     public boolean validateMerchant(String email, String rawApiKey) {
 
         // 1. Find merchant by email
-        Merchant merchant = merchantRepository.findByEmail(email);
+        Merchant merchant = merchantRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new MerchantNotFoundException(
+                                "Merchant not found with email: " + email
+                        )
+                );
+
         if (merchant == null) {
             return false;
         }
@@ -115,6 +121,18 @@ public class MerchantService {
 
         // 3. Compare raw key with stored hashed key
         return BCrypt.checkpw(rawApiKey, key.getHashedKey());
+    }
+
+    public String getWebHooks(String email){
+        Merchant merchant = merchantRepository.findByEmail(email)
+                .orElseThrow(() ->
+                        new MerchantNotFoundException(
+                                "Merchant not found with email: " + email
+                        )
+                );
+
+        return merchant.getWebhookUrl();
+
     }
 
 
