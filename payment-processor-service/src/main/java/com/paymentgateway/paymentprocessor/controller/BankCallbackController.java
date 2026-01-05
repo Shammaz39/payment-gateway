@@ -3,16 +3,19 @@ package com.paymentgateway.paymentprocessor.controller;
 
 import com.paymentgateway.commonlib.event.PaymentProcessedEvent;
 import com.paymentgateway.paymentprocessor.dto.BankCallbackRequest;
+import com.paymentgateway.paymentprocessor.entity.PaymentLog;
 import com.paymentgateway.paymentprocessor.entity.Transaction;
 import com.paymentgateway.paymentprocessor.entity.TransactionStatus;
 import com.paymentgateway.paymentprocessor.kafka.PaymentProcessedProducer;
 import com.paymentgateway.paymentprocessor.repository.TransactionRepository;
+import com.paymentgateway.paymentprocessor.repository.PaymentLogRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @RestController
@@ -21,14 +24,17 @@ public class BankCallbackController {
 
     private final TransactionRepository transactionRepository;
     private final PaymentProcessedProducer paymentProcessedProducer;
+    private final PaymentLogRepository paymentLogRepository;
 
 
     public BankCallbackController(
             TransactionRepository transactionRepository,
-            PaymentProcessedProducer paymentProcessedProducer
+            PaymentProcessedProducer paymentProcessedProducer,
+            PaymentLogRepository paymentLogRepository
     ) {
         this.transactionRepository = transactionRepository;
         this.paymentProcessedProducer = paymentProcessedProducer;
+        this.paymentLogRepository = paymentLogRepository;
     }
 
     @PostMapping("/callback")
@@ -59,6 +65,15 @@ public class BankCallbackController {
         }
 
         transactionRepository.save(tx);
+
+        // 🏦 Log bank callback
+        paymentLogRepository.save(
+                PaymentLog.builder()
+                        .transactionId(tx.getId())
+                        .message("Bank callback received: " + callback.getStatus())
+                        .createdAt(LocalDateTime.now())
+                        .build()
+        );
 
         // 📢 PUBLISH FINAL EVENT
         PaymentProcessedEvent event =
