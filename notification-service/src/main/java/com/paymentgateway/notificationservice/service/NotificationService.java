@@ -13,13 +13,10 @@ public class NotificationService {
 
     private final MerchantClient merchantClient;
     private final RestTemplate restTemplate = new RestTemplate();
-//    private final PaymentLogRepository paymentLogRepository;
 
     public NotificationService(MerchantClient merchantClient
-//            , PaymentLogRepository paymentLogRepository
     ) {
         this.merchantClient = merchantClient;
-//        this.paymentLogRepository = paymentLogRepository;
     }
 
     public void handle(PaymentProcessedEvent event) {

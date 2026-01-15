@@ -55,9 +55,6 @@ public class PaymentEventConsumer {
             System.out.println("🏦 Bank initial response: "
                     + bankResponse.getStatus());
 
-            // ❌ DO NOT update SUCCESS here
-            // ❌ DO NOT finalize payment here
-            // ✅ Final result comes via callback (Day 12)
 
         } catch (Exception ex) {
 
