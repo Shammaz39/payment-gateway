@@ -59,7 +59,8 @@ services:
   kafka:
     image: confluentinc/cp-kafka:7.6.0
     depends_on:
-      - zookeeper
+      - zookeeperdocker tag merchant-service:1.0 <dockerhub-username>/merchant-service:1.0
+
     ports:
       - "9092:9092"
     environment:
