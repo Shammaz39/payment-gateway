@@ -1,4 +1,4 @@
-# ✅ Payment Gateway System — Architecture & Flow
+# Payment Gateway System — Architecture & Flow
 
 ## 1. Overview
 
